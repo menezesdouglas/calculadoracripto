@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b14" />
+  <meta name="description" content="Calculadora de Risco e Trade para Criptomoedas: position sizing, stop loss, take profit e relação risco x retorno em tempo real." />
+  <title>Crypto Risk &amp; Trade Calculator</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1220'/%3E%3Cpath d='M10 22V14h3v8h-3zm4.5 0V10h3v12h-3zm4.5 0V16h3v6h-3z' fill='%2322c55e'/%3E%3C/svg%3E" />
+
+  <link rel="stylesheet" href="styles.css?v=2" />
+</head>
+<body>
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="26" height="26" fill="none">
+            <rect width="32" height="32" rx="8" fill="url(#lg)"/>
+            <path d="M10 22V14h3v8h-3zm4.5 0V10h3v12h-3zm4.5 0V16h3v6h-3z" fill="#fff" opacity=".92"/>
+            <defs>
+              <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
+                <stop stop-color="#10b981"/><stop offset="1" stop-color="#0ea5e9"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </span>
+        <div class="brand-text">
+          <h1>Crypto Risk &amp; Trade</h1>
+          <span class="brand-sub">Position Sizing &middot; Stop Loss &middot; Take Profit</span>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="seg seg-currency" id="currencySeg" role="group" aria-label="Moeda">
+          <button type="button" class="seg-btn active" data-currency="USD">USD</button>
+          <button type="button" class="seg-btn" data-currency="BRL">BRL</button>
+          <span class="seg-thumb"></span>
+        </div>
+        <button type="button" class="btn btn-ghost icon-btn" id="btnReload" title="Recarregar preço">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/>
+          </svg>
+          <span class="hide-sm">Recarregar</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ COIN & PRICE ============ -->
+    <section class="card card-hero">
+      <div class="card-head">
+        <div>
+          <h2 class="card-title">Par &amp; Preço</h2>
+          <p class="card-desc">Digite o nome ou código da criptomoeda. A cotação é buscada em tempo real.</p>
+        </div>
+        <span class="chip chip-live" id="statusPill">
+          <span class="dot"></span>
+          <span id="statusText">Aguardando moeda</span>
+        </span>
+      </div>
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg viewBox="0 0 24 24" class="search-ico" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>
+          </svg>
+          <input type="text" id="searchInput" autocomplete="off" spellcheck="false"
+                 placeholder="Ex: BTC, ETH, SOL, Bitcoin, XRP..." aria-label="Buscar criptomoeda" />
+          <button type="button" class="btn btn-primary" id="btnSearch">Buscar</button>
+        </div>
+        <div class="suggestions" id="suggestions" hidden></div>
+        <div class="chips" id="quickChips">
+          <span class="chips-label">Rápidas:</span>
+        </div>
+        <div class="source-row">
+          <span class="chips-label">Fonte de preço:</span>
+          <div class="seg" id="sourceSeg" role="group" aria-label="Fonte de preço">
+            <button type="button" class="seg-btn active" data-source="bingx">BingX Futuros</button>
+            <button type="button" class="seg-btn" data-source="binance">Binance Spot</button>
+            <span class="seg-thumb"></span>
+          </div>
+          <span class="source-note" id="sourceNote">Perpétuos USDT-M</span>
+        </div>
+      </div>
+
+      <div class="price-row" id="priceRow" hidden>
+        <div class="price-main">
+          <div class="price-symbol" id="priceSymbol">BTC</div>
+          <div class="price-value" id="priceCurrent">$0,00</div>
+          <div class="price-meta">
+            <span class="tag tag-blue" id="sourceTag">BingX Futuros</span>
+            <span class="tag tag-green" id="priceChange" hidden>+0,00%</span>
+            <span class="tag tag-live">Preço atualizado em tempo real</span>
+            <span class="price-time" id="priceTime"></span>
+          </div>
+        </div>
+
+        <div class="entry-block">
+          <label class="field-label" for="entryInput">Preço de Entrada <span class="hint">(edite para simular limite)</span></label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="entryInput" inputmode="decimal" class="input input-lg mono" placeholder="0.00" />
+            <span class="field-suffix" id="entrySuffix">US$</span>
+          </div>
+          <button type="button" class="btn btn-link btn-sm" id="btnUseMarket">Usar preço atual</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PARAMETERS ============ -->
+    <section class="card">
+      <div class="card-head">
+        <h2 class="card-title">Parâmetros da Operação</h2>
+        <span class="chip chip-blue" id="posTypeChip">Spot</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="field">
+          <label class="field-label" for="posTypeSeg">Tipo de Operação</label>
+          <div class="seg" id="posTypeSeg" role="group" aria-label="Tipo de operação">
+            <button type="button" class="seg-btn active" data-pos="spot">Spot</button>
+            <button type="button" class="seg-btn" data-pos="futures">Futuros</button>
+            <span class="seg-thumb"></span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="capitalInput">Aporte / Capital (R$ / US$)</label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="capitalInput" inputmode="decimal" class="input input-lg mono" placeholder="1.000,00" />
+            <span class="field-suffix" id="capitalSuffix">US$</span>
+          </div>
+        </div>
+
+        <div class="field field-full">
+          <div class="field-label-row">
+            <label class="field-label" for="levSlider">Alavancagem</label>
+            <span class="chip chip-amber" id="levValue">1x</span>
+          </div>
+          <input type="range" id="levSlider" min="1" max="100" step="1" value="1" aria-label="Alavancagem" />
+          <div class="range-scale"><span>1x</span><span>50x</span><span>100x</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STOP LOSS & TAKE PROFIT ============ -->
+    <section class="grid-2">
+      <div class="card" data-group="sl">
+        <div class="card-head">
+          <h3 class="card-title title-sm">Stop Loss</h3>
+          <span class="tag tag-red">Risco</span>
+        </div>
+
+        <div class="seg seg-block" id="slModeSeg" role="group" aria-label="Modo do stop loss">
+          <button type="button" class="seg-btn active" data-sl-mode="pct">Por %</button>
+          <button type="button" class="seg-btn" data-sl-mode="value">Preço fixo</button>
+          <span class="seg-thumb"></span>
+        </div>
+
+        <div class="mode-fields" data-mode="pct">
+          <label class="field-label" for="slPctInput">Perda máxima (%)</label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="slPctInput" inputmode="decimal" class="input input-lg mono" placeholder="2" />
+            <span class="field-suffix">%</span>
+          </div>
+          <div class="derived-row derived-sl" id="derivedSlPct"></div>
+        </div>
+
+        <div class="mode-fields" data-mode="value" hidden>
+          <label class="field-label" for="slPriceInput">Preço do Stop Loss</label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="slPriceInput" inputmode="decimal" class="input input-lg mono" placeholder="0.00" />
+            <span class="field-suffix" id="slSuffix">US$</span>
+          </div>
+          <div class="derived-row derived-sl" id="derivedSlValue"></div>
+        </div>
+      </div>
+
+      <div class="card" data-group="tp">
+        <div class="card-head">
+          <h3 class="card-title title-sm">Take Profit</h3>
+          <span class="tag tag-green">Lucro</span>
+        </div>
+
+        <div class="seg seg-block" id="tpModeSeg" role="group" aria-label="Modo do take profit">
+          <button type="button" class="seg-btn active" data-tp-mode="pct">Por %</button>
+          <button type="button" class="seg-btn" data-tp-mode="value">Preço alvo</button>
+          <span class="seg-thumb"></span>
+        </div>
+
+        <div class="mode-fields" data-mode="pct">
+          <label class="field-label" for="tpPctInput">Meta de ganho (%)</label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="tpPctInput" inputmode="decimal" class="input input-lg mono" placeholder="6" />
+            <span class="field-suffix">%</span>
+          </div>
+          <div class="derived-row derived-tp" id="derivedTpPct"></div>
+        </div>
+
+        <div class="mode-fields" data-mode="value" hidden>
+          <label class="field-label" for="tpPriceInput">Preço Alvo</label>
+          <div class="field-suffix-wrap">
+            <input type="text" id="tpPriceInput" inputmode="decimal" class="input input-lg mono" placeholder="0.00" />
+            <span class="field-suffix" id="tpSuffix">US$</span>
+          </div>
+          <div class="derived-row derived-tp" id="derivedTpValue"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESULTS ============ -->
+    <section class="card results-card" id="resultsCard">
+      <div class="card-head">
+        <h2 class="card-title">Painel de Resultados</h2>
+        <div class="result-actions">
+          <button type="button" class="btn btn-ghost btn-sm" id="btnClear">Limpar</button>
+        </div>
+      </div>
+
+      <div class="rr-block">
+        <div class="rr-head">
+          <span class="rr-label">Relação Risco x Retorno</span>
+          <span class="rr-value" id="rrText">1 : 3</span>
+        </div>
+        <div class="rr-bar" id="rrBar" aria-hidden="true">
+          <div class="rr-seg rr-risk" id="rrRisk">
+            <span>Risco</span>
+          </div>
+          <div class="rr-seg rr-reward" id="rrReward">
+            <span>Lucro</span>
+          </div>
+        </div>
+        <div class="rr-sub" id="rrSub">Para cada R$ 1 de risco, o retorno esperado é de R$ 3.</div>
+      </div>
+
+      <div class="results-grid">
+        <div class="result-tile tile-red">
+          <span class="tile-label">Preço de Stop Loss</span>
+          <span class="tile-value" id="resSlPrice">—</span>
+          <span class="tile-sub" id="resSlDist">—</span>
+        </div>
+        <div class="result-tile tile-green">
+          <span class="tile-label">Preço de Take Profit</span>
+          <span class="tile-value" id="resTpPrice">—</span>
+          <span class="tile-sub" id="resTpDist">—</span>
+        </div>
+        <div class="result-tile tile-red">
+          <span class="tile-label">Risco Máximo</span>
+          <span class="tile-value" id="resRisk">—</span>
+          <span class="tile-sub" id="resRiskPct">—</span>
+        </div>
+        <div class="result-tile tile-green">
+          <span class="tile-label">Lucro Potencial</span>
+          <span class="tile-value" id="resProfit">—</span>
+          <span class="tile-sub" id="resProfitPct">—</span>
+        </div>
+        <div class="result-tile tile-blue">
+          <span class="tile-label">Tamanho da Posição</span>
+          <span class="tile-value" id="resQty">—</span>
+          <span class="tile-sub" id="resNotional">—</span>
+        </div>
+        <div class="result-tile tile-amber" id="liqTile">
+          <span class="tile-label">Liquidação (est.)</span>
+          <span class="tile-value" id="resLiq">—</span>
+          <span class="tile-sub" id="resLiqDist">—</span>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footnote">
+      <p>Fonte de preço: BingX Futuros (perpétuos USDT-M), Binance e CoinGecko (APIs públicas). Estimativas para fins informativos e educacionais — não constituem recomendação de investimento.</p>
+    </footer>
+  </main>
+
+  <script src="app.js?v=4"></script>
+</body>
+</html>
